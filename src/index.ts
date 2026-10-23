@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { benchmarkCommand } from "@/commands/benchmark";
 import { doctorCommand } from "@/commands/doctor";
+import { uuidCommand } from "@/commands/generator/uuid";
 import { logger } from "@/utils/logger";
 import { ExitPromptError } from "@inquirer/core";
 import { Command } from "commander";
@@ -26,6 +27,24 @@ program
   .command("doctor")
   .description("Checkup system metrics")
   .action(doctorCommand);
+
+const genCommand = program
+  .command("generator")
+  .alias("gen")
+  .description("Different data generators");
+
+genCommand
+  .command("uuid")
+  .description("Generates UUIDs")
+  .option("-c, --count [count]", "Number of UUIDs to generate", "5")
+  .option("-v, --version [version]", "Version of the UUID", "v4")
+  .option(
+    "-f, --format [format]",
+    "Output format: table, json, or raw",
+    "table",
+  )
+  .option("--no-copy", "Disable auto copy output to clipboard", false)
+  .action(uuidCommand);
 
 program.parseAsync().catch((error: unknown) => {
   if (error instanceof ExitPromptError) {
