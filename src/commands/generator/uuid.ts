@@ -22,7 +22,7 @@ export async function uuidCommand(
     validators.oneOf(FORMATS),
   );
 
-  const copy = !options.noCopy;
+  const copy = options.copy;
 
   const generated = Array.from({ length: count }, () => {
     switch (version) {

@@ -26,7 +26,7 @@ export async function secretCommand(
     validators.oneOf(SECRET_ENCODING),
   );
 
-  const copy = !options.noCopy;
+  const copy = options.copy;
 
   const generateSecret = (): string => {
     switch (encoding) {

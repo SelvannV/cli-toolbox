@@ -1,7 +1,7 @@
 export type GeneratorOptions = {
   count: string;
   format: Format;
-  noCopy: boolean;
+  copy: boolean;
 };
 
 export const FORMATS = ["table", "json", "raw"] as const;
