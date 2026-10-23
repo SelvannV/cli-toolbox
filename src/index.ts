@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { benchmarkCommand } from "@/commands/benchmark";
 import { doctorCommand } from "@/commands/doctor";
+import { hashCommand } from "@/commands/generator/hash";
 import { secretCommand } from "@/commands/generator/secret";
 import { uuidCommand } from "@/commands/generator/uuid";
 import { logger } from "@/utils/logger";
@@ -64,6 +65,24 @@ genCommand
   )
   .option("--no-copy", "Disable auto copy output to clipboard")
   .action(secretCommand);
+
+genCommand
+  .command("hash")
+  .description("Generates a hash from text or a file")
+  .option("-t, --text <text>", "Text to hash")
+  .option("-i, --file <path>", "File to hash")
+  .option(
+    "-a, --algorithm <algorithm>",
+    "Hash algorithm: sha1, sha256, sha512, or md5",
+    "sha256",
+  )
+  .option(
+    "-f, --format <format>",
+    "Output format: table, json, or raw",
+    "table",
+  )
+  .option("--no-copy", "Disable auto copy output to clipboard")
+  .action(hashCommand);
 
 program.parseAsync().catch((error: unknown) => {
   if (error instanceof ExitPromptError) {
