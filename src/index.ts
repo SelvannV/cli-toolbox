@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { benchmarkCommand } from "@/commands/benchmark";
 import { doctorCommand } from "@/commands/doctor";
+import { secretCommand } from "@/commands/generator/secret";
 import { uuidCommand } from "@/commands/generator/uuid";
 import { logger } from "@/utils/logger";
 import { ExitPromptError } from "@inquirer/core";
@@ -36,15 +37,33 @@ const genCommand = program
 genCommand
   .command("uuid")
   .description("Generates UUIDs")
-  .option("-c, --count [count]", "Number of UUIDs to generate", "5")
-  .option("-v, --version [version]", "Version of the UUID", "v4")
+  .option("-c, --count <count>", "Number of UUIDs to generate", "5")
+  .option("-v, --version <version>", "UUID version", "v4")
   .option(
-    "-f, --format [format]",
+    "-f, --format <format>",
     "Output format: table, json, or raw",
     "table",
   )
-  .option("--no-copy", "Disable auto copy output to clipboard", false)
+  .option("--no-copy", "Disable auto copy output to clipboard")
   .action(uuidCommand);
+
+genCommand
+  .command("secret")
+  .description("Generates cryptographically secure secrets")
+  .option("-l, --length <length>", "Secret length", "64")
+  .option("-c, --count <count>", "Number of secrets to generate", "3")
+  .option(
+    "-e, --encoding <encoding>",
+    "Secret encoding: base64, hex, base64url, or alphanumeric",
+    "base64",
+  )
+  .option(
+    "-f, --format <format>",
+    "Output format: table, json, or raw",
+    "table",
+  )
+  .option("--no-copy", "Disable auto copy output to clipboard")
+  .action(secretCommand);
 
 program.parseAsync().catch((error: unknown) => {
   if (error instanceof ExitPromptError) {
