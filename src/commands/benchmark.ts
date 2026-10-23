@@ -1,4 +1,4 @@
-import { BenchmarkOptions } from "@/types/benchmark";
+import type { BenchmarkOptions } from "@/types/benchmark";
 import { errorMessage, sleep } from "@/utils/common";
 import {
   docker,
@@ -6,17 +6,10 @@ import {
   getImagesExposingTcpPorts,
 } from "@/utils/docker";
 import { logger } from "@/utils/logger";
-import {
-  validateEnvFile,
-  validatePath,
-  validatePort,
-  validatePositiveInteger,
-  validateTimeout,
-} from "@/utils/validation";
+import { parseOption, validatePrompt, validators } from "@/utils/validation";
 import { input, select } from "@inquirer/prompts";
 import chalk from "chalk";
 import type { Command } from "commander";
-import { resolve } from "node:path";
 import { performance } from "node:perf_hooks";
 
 async function waitUntilReady(
@@ -54,7 +47,7 @@ function percentile(sorted: number[], p: number): number {
 
 export async function benchmarkCommand(
   options: BenchmarkOptions,
-  _command: Command,
+  command: Command,
 ): Promise<void> {
   logger.title("Image Benchmark", {
     subtitle: "Container startup and HTTP readiness performance",
@@ -63,7 +56,7 @@ export async function benchmarkCommand(
   // Select or manually specify an image.
   const images = getImagesExposingTcpPorts();
 
-  const image =
+  const imageInput =
     options.image ??
     (images.length > 0
       ? await select({
@@ -72,9 +65,10 @@ export async function benchmarkCommand(
         })
       : await input({
           message: "Docker image to benchmark",
-          validate: (value) =>
-            value.trim().length > 0 || "Enter an image name.",
+          validate: validatePrompt(validators.dockerImage),
         }));
+
+  const image = parseOption(command, imageInput, validators.dockerImage);
 
   // A manually supplied port works even when the image has no EXPOSE metadata.
   const exposedPorts = getExposedPorts(image).filter((port) =>
@@ -93,80 +87,73 @@ export async function benchmarkCommand(
         })
       : await input({
           message: "Container port (image has no EXPOSE metadata)",
-          validate: validatePort,
+          validate: validatePrompt(validators.port),
         }));
 
-  const portNumber = Number(portInput.split("/")[0]);
-  const portValidation = validatePort(String(portNumber));
-
-  if (portValidation !== true) {
-    throw new Error(String(portValidation));
-  }
+  const portNumber = parseOption(
+    command,
+    portInput.split("/")[0],
+    validators.port,
+  );
 
   const hostPortInput =
     options.hostPort ??
     (await input({
       message: "Host port (leave empty for a random port)",
       default: "",
-      validate: (value) => (value.trim() ? validatePort(value) : true),
+      validate: (value) =>
+        value.trim() ? validatePrompt(validators.port)(value) : true,
     }));
 
-  const machinePort = hostPortInput.trim() ? Number(hostPortInput) : undefined;
+  const machinePort = hostPortInput.trim()
+    ? parseOption(command, hostPortInput.trim(), validators.port)
+    : undefined;
 
-  const path =
+  const pathInput =
     options.path ??
     (await input({
       message: "HTTP path to test",
       default: "/",
-      validate: validatePath,
+      validate: validatePrompt(validators.path),
     }));
 
-  if (validatePath(path) !== true) {
-    throw new Error(String(validatePath(path)));
-  }
+  const path = parseOption(command, pathInput, validators.path);
 
   const envInput =
     options.envFile ??
     (await input({
       message: "Path to .env file (optional)",
       default: "",
-      validate: validateEnvFile,
+      validate: validatePrompt(validators.envFile),
     }));
 
-  const envFile = envInput.trim() ? resolve(envInput.trim()) : undefined;
+  const envFile = parseOption(command, envInput, validators.envFile);
 
-  if (validateEnvFile(envInput) !== true) {
-    throw new Error(String(validateEnvFile(envInput)));
-  }
-
-  const network = options.network?.trim() || undefined;
+  const network =
+    options.network === undefined
+      ? undefined
+      : parseOption(command, options.network, validators.network);
 
   const runsInput =
     options.runs ??
     (await input({
       message: "Number of trials",
       default: "20",
-      validate: validatePositiveInteger,
+      validate: validatePrompt(validators.positiveInteger),
     }));
+
+  const runs = parseOption(command, runsInput, validators.positiveInteger);
 
   const timeoutInput =
     options.timeout ??
     (await input({
       message: "Timeout per trial (seconds)",
       default: "30",
-      validate: validateTimeout,
+      validate: validatePrompt(validators.timeout),
     }));
 
-  if (validatePositiveInteger(runsInput) !== true) {
-    throw new Error(String(validatePositiveInteger(runsInput)));
-  }
+  const timeout = parseOption(command, timeoutInput, validators.timeout);
 
-  if (validateTimeout(timeoutInput) !== true) {
-    throw new Error(String(validateTimeout(timeoutInput)));
-  }
-
-  const runs = Number(runsInput);
-  const timeout = Number(timeoutInput);
   const results: number[] = [];
   let failures = 0;
 
@@ -228,7 +215,6 @@ export async function benchmarkCommand(
 
       // Find the randomly assigned host port when one was requested.
       const mapping = docker("port", containerId, `${portNumber}/tcp`);
-
       const match = mapping.match(/127\.0\.0\.1:(\d+)/);
 
       if (!match) {

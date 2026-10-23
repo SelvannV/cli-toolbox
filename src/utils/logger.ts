@@ -99,6 +99,40 @@ function columns(rows: string[][], options: ColumnOptions = {}): void {
   });
 }
 
+type KeyValueOptions = {
+  leftPadding?: number;
+  gap?: number;
+  keyStyle?: (text: string) => string;
+  valueStyle?: (text: string, key: string) => string;
+};
+
+function keyValue(
+  entries: Record<string, unknown>,
+  options: KeyValueOptions = {},
+): void {
+  const {
+    leftPadding = 2,
+    gap = 2,
+    keyStyle = chalk.gray,
+    valueStyle = (text) => text,
+  } = options;
+
+  const rows = Object.entries(entries);
+  if (rows.length === 0) return;
+
+  const keyWidth = Math.max(...rows.map(([key]) => key.length));
+
+  for (const [key, value] of rows) {
+    const formattedKey = keyStyle(key);
+    const formattedValue = valueStyle(String(value ?? ""), key);
+    const padding = " ".repeat(keyWidth - key.length);
+
+    console.log(
+      `${" ".repeat(leftPadding)}${formattedKey}${padding}${" ".repeat(gap)}${formattedValue}`,
+    );
+  }
+}
+
 export const logger = {
   /** Configure global logger options */
   configure(options: LoggerOptions) {
@@ -113,6 +147,9 @@ export const logger = {
     log("error", message, ...args),
   debug: (message: string, ...args: unknown[]) =>
     log("debug", message, ...args),
+
+  hint: (message: string, ...args: unknown[]) =>
+    console.log(chalk.dim.gray.italic(message, formatArgs(args))),
 
   /** Renders a styled banner title box */
   title(titleText: string, options?: TitleOptions) {
@@ -144,11 +181,14 @@ export const logger = {
   },
 
   subtitle(text: string) {
-    console.log(`\n  ${chalk.cyan.bold(text.toUpperCase())}`);
+    console.log(`${chalk.cyan.bold(text.toUpperCase())}`);
   },
 
   /** Styled section divider */
-  divider(char = "─", length = 60) {
+  divider({
+    char = "─",
+    length = 60,
+  }: { char?: string; length?: number } = {}) {
     console.log(chalk.gray(char.repeat(length)));
   },
 
@@ -158,4 +198,5 @@ export const logger = {
   },
 
   columns,
+  keyValue,
 };
