@@ -1,7 +1,7 @@
-import { UUID_FORMATS, UuidOptions } from "@/types/uuid";
-import { logger } from "@/utils/logger";
+import { FORMATS } from "@/types/generator";
+import { UuidOptions } from "@/types/generator/uuid";
+import { displayGeneratorOutput } from "@/utils/generator-output";
 import { parseOption, validators } from "@/utils/validation";
-import clipboard from "clipboardy";
 import { Command } from "commander";
 import * as uuid from "uuid";
 
@@ -19,7 +19,7 @@ export async function uuidCommand(
   const format = parseOption(
     command,
     options.format,
-    validators.oneOf(UUID_FORMATS),
+    validators.oneOf(FORMATS),
   );
 
   const copy = !options.noCopy;
@@ -39,42 +39,14 @@ export async function uuidCommand(
     }
   });
 
-  switch (format) {
-    case "table":
-      if (copy) {
-        clipboard.writeSync(generated.join("\n"));
-      }
-      logger.title("UUID generator", { paddingX: 10 });
-      logger.subtitle("Generator Options");
-      logger.keyValue({
-        Count: count,
-        Version: version,
-      });
-      logger.divider({ length: 41 });
-      const uuidMap = Object.fromEntries(
-        generated.map((id, index) => [
-          `#${String(index + 1).padStart(2, "0")}`,
-          id,
-        ]),
-      );
-      logger.keyValue(uuidMap, { leftPadding: 0 });
-      logger.divider({ length: 41 });
-      break;
-    case "json":
-      if (copy) {
-        clipboard.writeSync(JSON.stringify(generated, null, 2));
-      }
-      console.log(JSON.stringify(generated, null, 2));
-      break;
-    case "raw":
-      if (copy) {
-        clipboard.writeSync(generated.join("\n"));
-      }
-      generated.forEach((id) => console.log(id));
-      break;
-  }
-
-  if (copy) {
-    logger.hint("\nResults have been copied to clipboard");
-  }
+  displayGeneratorOutput({
+    title: "UUID generator",
+    format,
+    values: generated,
+    details: {
+      Count: count,
+      Version: version,
+    },
+    copy,
+  });
 }
