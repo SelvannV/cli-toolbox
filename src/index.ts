@@ -2,6 +2,7 @@
 import { benchmarkCommand } from "@/commands/benchmark";
 import { doctorCommand } from "@/commands/doctor";
 import { hashCommand } from "@/commands/generator/hash";
+import { passwordCommand } from "@/commands/generator/password";
 import { secretCommand } from "@/commands/generator/secret";
 import { uuidCommand } from "@/commands/generator/uuid";
 import { logger } from "@/utils/logger";
@@ -31,7 +32,7 @@ program
   .action(doctorCommand);
 
 const genCommand = program
-  .command("generator")
+  .command("generate")
   .alias("gen")
   .description("Different data generators");
 
@@ -83,6 +84,21 @@ genCommand
   )
   .option("--no-copy", "Disable auto copy output to clipboard")
   .action(hashCommand);
+
+genCommand
+  .command("password")
+  .description("Generates memorable, word-based passwords")
+  .option("-c, --count <count>", "Number of passwords to generate", "3")
+  .option("-w, --words <words>", "Number of words per password", "2")
+  .option(
+    "-f, --format <format>",
+    "Output format: table, json, or raw",
+    "table",
+  )
+  .option("--no-symbols", "Disable symbols")
+  .option("--no-substitutions", "Disable character substitutions")
+  .option("--no-copy", "Disable copying output to clipboard")
+  .action(passwordCommand);
 
 program.parseAsync().catch((error: unknown) => {
   if (error instanceof ExitPromptError) {
